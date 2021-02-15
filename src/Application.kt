@@ -3,16 +3,20 @@ package com.thegeekdogs
 import com.thegeekdogs.auth.JwtService
 import com.thegeekdogs.auth.MySession
 import com.thegeekdogs.repository.DatabaseFactory
+import com.thegeekdogs.repository.NotesRepository
 import com.thegeekdogs.repository.UserRepository
+import com.thegeekdogs.route.createNote
 import com.thegeekdogs.route.createUser
+import com.thegeekdogs.route.loginUser
 import io.ktor.application.*
-import io.ktor.locations.*
-import io.ktor.sessions.*
 import io.ktor.auth.*
 import io.ktor.auth.jwt.*
-import io.ktor.gson.*
 import io.ktor.features.*
+import io.ktor.gson.*
+import io.ktor.locations.*
 import io.ktor.routing.*
+import io.ktor.sessions.*
+import kotlin.collections.set
 
 const val API_VERSION = "/v1"
 
@@ -20,7 +24,6 @@ const val API_VERSION = "/v1"
 fun main(args: Array<String>): Unit = io.ktor.server.netty.EngineMain.main(args)
 
 @KtorExperimentalLocationsAPI
-@Suppress("unused") // Referenced in application.conf
 @kotlin.jvm.JvmOverloads
 fun Application.module(testing: Boolean = false) {
     install(Locations) {
@@ -33,7 +36,8 @@ fun Application.module(testing: Boolean = false) {
     }
 
     DatabaseFactory.init()
-    val db = UserRepository()
+    val userRepository = UserRepository()
+    val notesRepository = NotesRepository()
     val jwtService = JwtService()
 
     install(Authentication) {
@@ -43,7 +47,7 @@ fun Application.module(testing: Boolean = false) {
             validate {
                 val payload = it.payload
                 val claim = payload.getClaim("id").asInt()
-                db.findUser(claim)
+                userRepository.findUser(claim)
             }
         }
     }
@@ -54,7 +58,9 @@ fun Application.module(testing: Boolean = false) {
     }
 
     routing {
-        createUser(db, jwtService)
+        createUser(userRepository, jwtService)
+        loginUser(userRepository, jwtService)
+        createNote(userRepository, notesRepository)
     }
 }
 

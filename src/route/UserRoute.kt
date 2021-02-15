@@ -14,9 +14,9 @@ import io.ktor.response.*
 import io.ktor.routing.*
 import io.ktor.sessions.*
 
-const val USERS = "$API_VERSION/users"
-const val USER_LOGIN = "$USERS/login"
-const val USER_CREATE = "$USERS/create"
+private const val USERS = "$API_VERSION/users"
+private const val USER_LOGIN = "$USERS/login"
+private const val USER_CREATE = "$USERS/create"
 
 @KtorExperimentalLocationsAPI
 @Location(USER_LOGIN)
@@ -26,16 +26,29 @@ class UserLoginRoute
 @Location(USER_CREATE)
 class UserCreateRoute
 
+object UserRouteApiContract {
+    const val PARAM_EMAIL = "email"
+    const val PARAM_PASSWORD = "password"
+    const val PARAM_DISPLAY_NAME = "displayName"
+}
+
 @KtorExperimentalLocationsAPI
 fun Route.createUser(db: UserRepository, jwtService: JwtService) {
     post<UserCreateRoute> {
         val signUpParams = call.receiveParameters()
         val password =
-            signUpParams["password"] ?: return@post call.respond(HttpStatusCode.Unauthorized, "Missing Fields")
+            signUpParams[UserRouteApiContract.PARAM_PASSWORD] ?: return@post call.respond(
+                HttpStatusCode.Unauthorized,
+                "Missing Fields"
+            )
         val displayName =
-            signUpParams["displayName"] ?: return@post call.respond(HttpStatusCode.Unauthorized, "Missing Fields")
+            signUpParams[UserRouteApiContract.PARAM_DISPLAY_NAME]
+                ?: return@post call.respond(HttpStatusCode.Unauthorized, "Missing Fields")
         val emailAddress =
-            signUpParams["email"] ?: return@post call.respond(HttpStatusCode.Unauthorized, "Missing Fields")
+            signUpParams[UserRouteApiContract.PARAM_EMAIL] ?: return@post call.respond(
+                HttpStatusCode.Unauthorized,
+                "Missing Fields"
+            )
         kotlin.runCatching {
             val newUser = db.addUser(emailAddress, displayName, password.toHash())
             if (newUser?.userId != null) {
@@ -63,6 +76,41 @@ fun Route.createUser(db: UserRepository, jwtService: JwtService) {
             } else {
                 call.respond(HttpStatusCode.InternalServerError)
             }
+        }
+    }
+}
+
+@KtorExperimentalLocationsAPI
+fun Route.loginUser(db: UserRepository, jwtService: JwtService) {
+    post<UserLoginRoute> {
+        val signInParams = call.receiveParameters()
+        val emailAddress = signInParams[UserRouteApiContract.PARAM_EMAIL] ?: return@post call.respond(
+            HttpStatusCode.Unauthorized,
+            "Missing Fields"
+        )
+        val password = signInParams[UserRouteApiContract.PARAM_PASSWORD] ?: return@post call.respond(
+            HttpStatusCode.Unauthorized,
+            "Missing Fields"
+        )
+        kotlin.runCatching {
+            val userModel = db.findUserByEmail(emailAddress)
+            if (userModel != null) {
+                // User Exists
+                if (userModel.passwordHash == password.toHash()) {
+                    // Password Match
+                    call.sessions.set(MySession(userModel.userId))
+                    call.respondText(
+                        jwtService.generateToken(userModel),
+                        status = HttpStatusCode.Accepted
+                    )
+                } else {
+                    call.respond(HttpStatusCode.BadRequest, "Password not matched")
+                }
+            } else {
+                call.respond(HttpStatusCode.NotFound, "User Not Found")
+            }
+        }.getOrElse {
+            call.respond(HttpStatusCode.InternalServerError)
         }
     }
 }
