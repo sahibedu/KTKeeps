@@ -13,7 +13,11 @@ apply plugin: 'application'
 
 group 'com.thegeekdogs'
 version '0.0.1'
-mainClassName = "io.ktor.server.netty.EngineMain"
+mainClassName = "com.thegeekdogs.ApplicationKt"
+
+tasks.create("stage") {
+    dependsOn("installDist")
+}
 
 sourceSets {
     main.kotlin.srcDirs = main.java.srcDirs = ['src']
