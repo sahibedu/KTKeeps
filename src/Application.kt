@@ -13,7 +13,9 @@ import io.ktor.auth.*
 import io.ktor.auth.jwt.*
 import io.ktor.features.*
 import io.ktor.gson.*
+import io.ktor.http.*
 import io.ktor.locations.*
+import io.ktor.response.*
 import io.ktor.routing.*
 import io.ktor.sessions.*
 import kotlin.collections.set
@@ -58,6 +60,9 @@ fun Application.module(testing: Boolean = false) {
     }
 
     routing {
+        get("/") {
+            call.respondText("Welcome To KTKeeps API Homepage", contentType = ContentType.Text.Plain)
+        }
         createUser(userRepository, jwtService)
         loginUser(userRepository, jwtService)
         createNote(userRepository, notesRepository)
