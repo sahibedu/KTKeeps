@@ -13,7 +13,7 @@ apply plugin: 'application'
 
 group 'com.thegeekdogs'
 version '0.0.1'
-mainClassName = "com.thegeekdogs.ApplicationKt"
+mainClassName = "io.ktor.server.netty.EngineMain"
 
 tasks.create("stage") {
     dependsOn("installDist")
