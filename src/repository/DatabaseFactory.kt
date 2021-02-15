@@ -1,10 +1,11 @@
 package com.thegeekdogs.repository
 
 import com.zaxxer.hikari.HikariConfig
-import org.jetbrains.exposed.sql.Database
 import com.zaxxer.hikari.HikariDataSource
+import io.ktor.http.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.SchemaUtils
 import org.jetbrains.exposed.sql.transactions.transaction
 
@@ -27,11 +28,14 @@ object DatabaseFactory {
         config.maximumPoolSize = 3
         config.isAutoCommit = false
         config.transactionIsolation = "TRANSACTION_REPEATABLE_READ"
-        val user = System.getenv("DB_USER") // 3
+
+
+        val jdbcUrl = Url(System.getenv("JDBC_DATABASE_URL"))
+        val user = jdbcUrl.parameters["user"] // 3
         if (user != null) {
             config.username = user
         }
-        val password = System.getenv("DB_PASSWORD") // 4
+        val password = jdbcUrl.parameters["password"] // 4
         if (password != null) {
             config.password = password
         }
